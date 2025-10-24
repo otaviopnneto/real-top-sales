@@ -1,0 +1,212 @@
+openapi: 3.0.3
+info:
+  title: VCA API - Edge Functions
+  version: "1.0.0"
+  description: |
+    Documentação das funções Edge do projeto **VCA** hospedadas no **Supabase**.
+    Todas as rotas estão sob o domínio:
+    ```
+    https://cqjviutyjppzxvwalwdv.supabase.co/functions/v1/
+    ```
+    > **Atenção:**  
+    Cada chamada requer os headers `apikey` e `Authorization: Bearer <chave>` válidos do Supabase.
+
+servers:
+  - url: https://cqjviutyjppzxvwalwdv.supabase.co/functions/v1
+    description: Servidor Supabase Functions
+
+tags:
+  - name: Pontuação
+    description: Operações relacionadas à pontuação dos corretores
+
+paths:
+  /rapid-processor:
+    get:
+      tags: [Pontuação]
+      summary: Lista os registros de pontuação processados
+      description: |
+        Retorna uma lista paginada de registros da tabela `tb_pontos`.  
+        É possível filtrar por corretor, empreendimento, cidade ou intervalo de datas.
+      parameters:
+        - name: last_id
+          in: query
+          description: ID do último item da página anterior (para paginação)
+          schema:
+            type: integer
+            example: 118
+        - name: idcorretor
+          in: query
+          description: Filtra por ID do corretor
+          schema:
+            type: integer
+            example: 99
+        - name: idempreendimento
+          in: query
+          description: Filtra por ID do empreendimento
+          schema:
+            type: integer
+            example: 7
+        - name: idcidade
+          in: query
+          description: Filtra por ID da cidade
+          schema:
+            type: integer
+            example: 3
+        - name: createdFrom
+          in: query
+          description: Data inicial de criação (UTC)
+          schema:
+            type: string
+            format: date-time
+            example: "2025-10-01T00:00:00Z"
+        - name: createdTo
+          in: query
+          description: Data final de criação (UTC)
+          schema:
+            type: string
+            format: date-time
+            example: "2025-10-24T00:00:00Z"
+        - name: updatedFrom
+          in: query
+          description: Data mínima da última atualização (UTC)
+          schema:
+            type: string
+            format: date-time
+            example: "2025-10-20T00:00:00Z"
+      responses:
+        "200":
+          description: Lista de registros retornada com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  count:
+                    type: integer
+                    example: 307
+                  next_page_id:
+                    type: integer
+                    example: 118
+                  next_page_url:
+                    type: string
+                    example: "https://cqjviutyjppzxvwalwdv.supabase.co/functions/v1/rapid-processor?last_id=118"
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: integer, example: 326 }
+                        valor: { type: number, example: 3 }
+                        motivo: { type: string, example: "Pré-Cadastro - Reversão de Discussão" }
+                        categoria: { type: string, example: "PRÉ-CADASTROS" }
+                        tipo: { type: string, example: "AUTO" }
+                        booster: { type: number, example: 1 }
+                        idevento: { type: integer, example: 36878 }
+                        idcorretor: { type: integer, example: 99 }
+                        nomecorretor: { type: string, example: "ALEXANDRE TEIXEIRA OLIVEIRA" }
+                        documento: { type: string, example: "06807391579" }
+                        idimob: { type: integer, example: 18 }
+                        nomeimobiliaria: { type: string, example: "Equipe Guanambi" }
+                        idempreendimento: { type: integer, example: 7 }
+                        nomeempreendimento: { type: string, example: "DON GUANAMBI" }
+                        idcidade: { type: integer, example: 3 }
+                        nomecidade: { type: string, example: "GUANAMBI - BA" }
+                        created_at: { type: string, format: date-time, example: "2025-10-24T13:32:49.883825+00:00" }
+                        updated_at: { type: string, format: date-time, example: "2025-10-24T13:32:49.883825+00:00" }
+        "400":
+          description: Parâmetros inválidos
+        "500":
+          description: Erro interno no servidor
+
+  /inserir-pontos:
+    post:
+      tags: [Pontuação]
+      summary: Insere pontuação manualmente para um corretor
+      description: |
+        Insere um novo registro na tabela `tb_pontos` do banco de dados Supabase.  
+        Usado para bonificações, correções ou acréscimos de pontos manuais.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                idcorretor:
+                  type: integer
+                  example: 11
+                idempreendimento:
+                  type: integer
+                  example: 1
+                valor:
+                  type: number
+                  example: 1000
+                motivo:
+                  type: string
+                  example: "Bonificação Extra - Black"
+                categoria:
+                  type: string
+                  enum: [FACILITA, CAIXA, OUTROS, PRÉ-CADASTROS]
+                  example: "OUTROS"
+                tipo:
+                  type: string
+                  enum: [AUTO, MANUAL]
+                  example: "MANUAL"
+                booster:
+                  type: number
+                  example: 1
+      responses:
+        "200":
+          description: Inserção realizada com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        example: 217
+                      created_at:
+                        type: string
+                        format: date-time
+                        example: "2025-10-22T20:00:32.924+00:00"
+                      idcorretor:
+                        type: integer
+                        example: 11
+                      idempreendimento:
+                        type: integer
+                        example: 1
+                      valor:
+                        type: number
+                        example: 1000
+                      motivo:
+                        type: string
+                        example: "Bonificação Extra - Black"
+                      categoria:
+                        type: string
+                        example: "OUTROS"
+                      tipo:
+                        type: string
+                        example: "MANUAL"
+                      updated_at:
+                        type: string
+                        format: date-time
+                        example: "2025-10-22T20:00:33.53892+00:00"
+                      booster:
+                        type: number
+                        example: 1
+                      idevento:
+                        type: integer
+                        nullable: true
+                        example: null
+
+        "400":
+          description: Requisição inválida
+        "500":
+          description: Erro interno no servidor
