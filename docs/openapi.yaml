@@ -15,9 +15,19 @@ servers:
   - url: https://cqjviutyjppzxvwalwdv.supabase.co/functions/v1
     description: Servidor Supabase Functions
 
+security:
+  - BearerAuth: []
+
 tags:
   - name: Pontuação
     description: Operações relacionadas à pontuação dos corretores
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT # opcional, só pra indicar que é um token tipo JWT
 
 paths:
   /rapid-processor:
