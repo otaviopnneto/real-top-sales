@@ -1,91 +1,51 @@
-openapi: 3.0.3
+openapi: 3.0.0
 info:
-  title: VCA API - Edge Functions
-  version: "1.0.0"
-  description: |
-    Documentação das funções Edge do projeto **VCA** hospedadas no **Supabase**.
-    Todas as rotas estão sob o domínio:
-    ```
-    https://cqjviutyjppzxvwalwdv.supabase.co/functions/v1/
-    ```
-    > **Atenção:**  
-    Cada chamada requer os headers `apikey` e `Authorization: Bearer <chave>` válidos do Supabase.
+  title: API Sistema de Corretores e Pontos
+  description: API para gerenciamento de corretores e sistema de pontuação
+  version: 1.0.0
+  contact:
+    name: Suporte
+    email: suporte@empresa.com
 
 servers:
   - url: https://cqjviutyjppzxvwalwdv.supabase.co/functions/v1
-    description: Servidor Supabase Functions
-
-security:
-  - BearerAuth: []
-
-tags:
-  - name: Pontuação
-    description: Operações relacionadas à pontuação dos corretores
-
-components:
-  securitySchemes:
-    BearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT # opcional, só pra indicar que é um token tipo JWT
+    description: Servidor Supabase Edge Functions
 
 paths:
-  /rapid-processor:
+  /corretores:
     get:
-      tags: [Pontuação]
-      summary: Lista os registros de pontuação processados
-      description: |
-        Retorna uma lista paginada de registros da tabela `tb_pontos`.  
-        É possível filtrar por corretor, empreendimento, cidade ou intervalo de datas.
+      summary: Listar corretores
+      description: Retorna uma lista paginada de corretores com possibilidade de filtros
+      tags:
+        - Corretores
+      security:
+        - BearerAuth: []
       parameters:
-        - name: last_id
-          in: query
-          description: ID do último item da página anterior (para paginação)
-          schema:
-            type: integer
-            example: 118
         - name: idcorretor
           in: query
-          description: Filtra por ID do corretor
+          description: Filtrar por ID específico do corretor
+          required: false
           schema:
             type: integer
-            example: 99
-        - name: idempreendimento
+            example: 192
+        - name: last_id
           in: query
-          description: Filtra por ID do empreendimento
+          description: ID para paginação (retorna registros com ID menor que este)
+          required: false
           schema:
             type: integer
-            example: 7
-        - name: idcidade
+            example: 200
+        - name: status
           in: query
-          description: Filtra por ID da cidade
-          schema:
-            type: integer
-            example: 3
-        - name: createdFrom
-          in: query
-          description: Data inicial de criação (UTC)
+          description: Filtrar por status do corretor
+          required: false
           schema:
             type: string
-            format: date-time
-            example: "2025-10-01T00:00:00Z"
-        - name: createdTo
-          in: query
-          description: Data final de criação (UTC)
-          schema:
-            type: string
-            format: date-time
-            example: "2025-10-24T00:00:00Z"
-        - name: updatedFrom
-          in: query
-          description: Data mínima da última atualização (UTC)
-          schema:
-            type: string
-            format: date-time
-            example: "2025-10-20T00:00:00Z"
+            enum: [ativo, inativo]
+            example: ativo
       responses:
-        "200":
-          description: Lista de registros retornada com sucesso
+        '200':
+          description: Lista de corretores retornada com sucesso
           content:
             application/json:
               schema:
@@ -93,130 +53,424 @@ paths:
                 properties:
                   status:
                     type: string
-                    example: ok
+                    example: "ok"
                   count:
                     type: integer
-                    example: 307
+                    example: 1
                   next_page_id:
                     type: integer
-                    example: 118
+                    nullable: true
+                    example: null
                   next_page_url:
                     type: string
-                    example: "https://cqjviutyjppzxvwalwdv.supabase.co/functions/v1/rapid-processor?last_id=118"
+                    nullable: true
+                    example: null
                   data:
                     type: array
                     items:
-                      type: object
-                      properties:
-                        id: { type: integer, example: 326 }
-                        valor: { type: number, example: 3 }
-                        motivo: { type: string, example: "Pré-Cadastro - Reversão de Discussão" }
-                        categoria: { type: string, example: "PRÉ-CADASTROS" }
-                        tipo: { type: string, example: "AUTO" }
-                        booster: { type: number, example: 1 }
-                        idevento: { type: integer, example: 36878 }
-                        idcorretor: { type: integer, example: 99 }
-                        nomecorretor: { type: string, example: "ALEXANDRE TEIXEIRA OLIVEIRA" }
-                        documento: { type: string, example: "06807391579" }
-                        idimob: { type: integer, example: 18 }
-                        nomeimobiliaria: { type: string, example: "Equipe Guanambi" }
-                        idempreendimento: { type: integer, example: 7 }
-                        nomeempreendimento: { type: string, example: "DON GUANAMBI" }
-                        idcidade: { type: integer, example: 3 }
-                        nomecidade: { type: string, example: "GUANAMBI - BA" }
-                        created_at: { type: string, format: date-time, example: "2025-10-24T13:32:49.883825+00:00" }
-                        updated_at: { type: string, format: date-time, example: "2025-10-24T13:32:49.883825+00:00" }
-        "400":
-          description: Parâmetros inválidos
-        "500":
-          description: Erro interno no servidor
+                      $ref: '#/components/schemas/Corretor'
+        '400':
+          description: Erro na requisição
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Token de autenticação inválido ou não fornecido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
-  /inserir-pontos:
-    post:
-      tags: [Pontuação]
-      summary: Insere pontuação manualmente para um corretor
-      description: |
-        Insere um novo registro na tabela `tb_pontos` do banco de dados Supabase.  
-        Usado para bonificações, correções ou acréscimos de pontos manuais.
+    patch:
+      summary: Atualizar corretor
+      description: Atualiza o status ou avatar de um corretor específico
+      tags:
+        - Corretores
+      security:
+        - BearerAuth: []
       requestBody:
         required: true
         content:
-          application/json:
+          multipart/form-data:
             schema:
               type: object
+              required:
+                - idCorretor
               properties:
-                idcorretor:
+                idCorretor:
                   type: integer
-                  example: 11
-                idempreendimento:
-                  type: integer
-                  example: 1
-                valor:
-                  type: number
-                  example: 1000
-                motivo:
+                  description: ID do corretor a ser atualizado
+                  example: 192
+                status:
                   type: string
-                  example: "Bonificação Extra - Black"
-                categoria:
+                  description: Novo status do corretor
+                  enum: [ATIVO, INATIVO]
+                  example: ATIVO
+                avatarFile:
                   type: string
-                  enum: [FACILITA, CAIXA, OUTROS, PRÉ-CADASTROS]
-                  example: "OUTROS"
-                tipo:
-                  type: string
-                  enum: [AUTO, MANUAL]
-                  example: "MANUAL"
-                booster:
-                  type: number
-                  example: 1
+                  format: binary
+                  description: Arquivo de imagem para avatar
       responses:
-        "200":
-          description: Inserção realizada com sucesso
+        '200':
+          description: Corretor atualizado com sucesso
           content:
             application/json:
               schema:
                 type: object
                 properties:
                   data:
-                    type: object
-                    properties:
-                      id:
-                        type: integer
-                        example: 217
-                      created_at:
-                        type: string
-                        format: date-time
-                        example: "2025-10-22T20:00:32.924+00:00"
-                      idcorretor:
-                        type: integer
-                        example: 11
-                      idempreendimento:
-                        type: integer
-                        example: 1
-                      valor:
-                        type: number
-                        example: 1000
-                      motivo:
-                        type: string
-                        example: "Bonificação Extra - Black"
-                      categoria:
-                        type: string
-                        example: "OUTROS"
-                      tipo:
-                        type: string
-                        example: "MANUAL"
-                      updated_at:
-                        type: string
-                        format: date-time
-                        example: "2025-10-22T20:00:33.53892+00:00"
-                      booster:
-                        type: number
-                        example: 1
-                      idevento:
-                        type: integer
-                        nullable: true
-                        example: null
+                    $ref: '#/components/schemas/Corretor'
+        '400':
+          description: Erro na requisição
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Token de autenticação inválido ou não fornecido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
-        "400":
-          description: Requisição inválida
-        "500":
-          description: Erro interno no servidor
+  /pontos:
+    get:
+      summary: Listar pontos
+      description: Retorna uma lista paginada de pontos com diversos filtros disponíveis
+      tags:
+        - Pontos
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: idcorretor
+          in: query
+          description: Filtrar por ID do corretor
+          required: false
+          schema:
+            type: integer
+            example: 192
+        - name: idempreendimento
+          in: query
+          description: Filtrar por ID do empreendimento
+          required: false
+          schema:
+            type: integer
+            example: 15
+        - name: idcidade
+          in: query
+          description: Filtrar por ID da cidade
+          required: false
+          schema:
+            type: integer
+            example: 1
+        - name: created_from
+          in: query
+          description: Filtrar a partir desta data de criação (formato YYYY-MM-DD)
+          required: false
+          schema:
+            type: string
+            format: date
+            example: "2024-01-01"
+        - name: created_to
+          in: query
+          description: Filtrar até esta data de criação (formato YYYY-MM-DD)
+          required: false
+          schema:
+            type: string
+            format: date
+            example: "2024-12-31"
+        - name: updated_from
+          in: query
+          description: Filtrar a partir desta data de atualização (formato YYYY-MM-DD)
+          required: false
+          schema:
+            type: string
+            format: date
+            example: "2024-01-01"
+        - name: last_id
+          in: query
+          description: ID para paginação (retorna registros com ID menor que este)
+          required: false
+          schema:
+            type: integer
+            example: 1000
+      responses:
+        '200':
+          description: Lista de pontos retornada com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+                  count:
+                    type: integer
+                    example: 50
+                  next_page_id:
+                    type: integer
+                    nullable: true
+                    example: 950
+                  next_page_url:
+                    type: string
+                    nullable: true
+                    example: "https://cqjviutyjppzxvwalwdv.supabase.co/functions/v1/pontos?last_id=950"
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PontoCompleto'
+        '400':
+          description: Erro na requisição
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Token de autenticação inválido ou não fornecido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      summary: Criar ponto manual
+      description: Cria um novo ponto do tipo manual para um corretor
+      tags:
+        - Pontos
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - idcorretor
+                - idempreendimento
+                - valor
+                - motivo
+              properties:
+                idcorretor:
+                  type: integer
+                  description: ID do corretor
+                  example: 192
+                idempreendimento:
+                  type: integer
+                  description: ID do empreendimento
+                  example: 15
+                valor:
+                  type: number
+                  format: float
+                  description: Valor dos pontos
+                  example: 100.5
+                motivo:
+                  type: string
+                  description: Motivo da pontuação
+                  example: "Venda realizada"
+      responses:
+        '201':
+          description: Ponto criado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ponto'
+        '400':
+          description: Erro de validação ou dados ausentes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Token de autenticação inválido ou não fornecido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    patch:
+      summary: Atualizar ponto manual
+      description: Atualiza um ponto existente do tipo manual
+      tags:
+        - Pontos
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - idcorretor
+                - idempreendimento
+                - valor
+                - motivo
+              properties:
+                idcorretor:
+                  type: integer
+                  description: ID do corretor
+                  example: 192
+                idempreendimento:
+                  type: integer
+                  description: ID do empreendimento
+                  example: 15
+                valor:
+                  type: number
+                  format: float
+                  description: Valor dos pontos
+                  example: 150.0
+                motivo:
+                  type: string
+                  description: Motivo da pontuação
+                  example: "Venda atualizada"
+      responses:
+        '200':
+          description: Ponto atualizado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ponto'
+        '400':
+          description: Erro de validação ou dados ausentes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Token de autenticação inválido ou não fornecido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Ponto não é do tipo MANUAL e não pode ser atualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Ponto não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    Corretor:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 192
+        documento:
+          type: string
+          example: "62559604396"
+        nome:
+          type: string
+          example: "THAYLANA CUNHA MACHADO"
+        alias:
+          type: string
+          nullable: true
+          example: null
+        avatar:
+          type: string
+          nullable: true
+          example: null
+        status:
+          type: string
+          enum: [ATIVO, INATIVO]
+          example: "ATIVO"
+        idvca:
+          type: integer
+          example: 2221
+        idlotear:
+          type: integer
+          nullable: true
+          example: null
+        idimob:
+          type: integer
+          example: 46
+        email:
+          type: string
+          format: email
+          example: "thaylanacunha@outlook.com"
+        created_at:
+          type: string
+          format: date-time
+          example: "2025-10-27T21:28:08.198523+00:00"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2025-10-27T21:28:08.198523+00:00"
+
+    Ponto:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        idcorretor:
+          type: integer
+          example: 192
+        idempreendimento:
+          type: integer
+          example: 15
+        valor:
+          type: number
+          format: float
+          example: 100.5
+        motivo:
+          type: string
+          example: "Venda realizada"
+        categoria:
+          type: string
+          example: "OUTROS"
+        tipo:
+          type: string
+          example: "MANUAL"
+        booster:
+          type: number
+          format: float
+          example: 1.0
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    PontoCompleto:
+      type: object
+      description: View completa com joins de relacionamentos
+      allOf:
+        - $ref: '#/components/schemas/Ponto'
+        - type: object
+          properties:
+            # Adicione aqui propriedades adicionais da view vw_pontos_completo
+            nome_corretor:
+              type: string
+              example: "THAYLANA CUNHA MACHADO"
+            nome_empreendimento:
+              type: string
+              example: "Residencial Solar"
+
+    Error:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "error"
+        error:
+          type: string
+          example: "Mensagem de erro descritiva"
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Token de autenticação JWT obtido via Supabase Auth
