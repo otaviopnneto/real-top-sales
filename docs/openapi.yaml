@@ -39,11 +39,11 @@ paths:
                 email:
                   type: string
                   format: email
-                  example: "otavio.nascimento@vcaconstrutora.com.br"
+                  example: "login@email.com"
                 password:
                   type: string
                   format: password
-                  example: "Vca@2025"
+                  example: "Abc@123"
       responses:
         '200':
           description: Autenticação realizada com sucesso
