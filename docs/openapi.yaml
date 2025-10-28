@@ -86,7 +86,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /functions/v1/pontos:
+  /functions/v1/points:
     get:
       summary: Listar pontos
       description: Retorna uma lista paginada de pontos com diversos filtros disponíveis
@@ -168,7 +168,7 @@ paths:
                   next_page_url:
                     type: string
                     nullable: true
-                    example: "https://cqjviutyjppzxvwalwdv.supabase.co/functions/v1/pontos?last_id=950"
+                    example: "https://cqjviutyjppzxvwalwdv.supabase.co/functions/v1/points?last_id=950"
                   data:
                     type: array
                     items:
@@ -242,7 +242,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /functions/v1/pontos/{id}:
+  /functions/v1/points/{id}:
     patch:
       summary: Atualizar ponto manual
       description: Atualiza um ponto existente do tipo manual pelo ID na URL
@@ -464,6 +464,10 @@ paths:
                   type: string
                   format: binary
                   description: Arquivo de imagem para avatar
+                alias:
+                  type: string
+                  description: Nome amigável a ser exibido para o corretor
+                  example: Fulano
       responses:
         '200':
           description: Corretor atualizado com sucesso
@@ -1186,7 +1190,392 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+  /functions/v1/imobiliarias:
+    get:
+      summary: Listar imobiliárias
+      description: Retorna a lista completa de imobiliárias (sem paginação)
+      tags:
+        - Imobiliárias
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: query
+          description: Filtrar por ID específico da imobiliária
+          required: false
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: Lista de imobiliárias retornada com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+                  count:
+                    type: integer
+                    example: 50
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Imobiliaria'
+        '400':
+          description: Erro na requisição
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Token de autenticação inválido ou não fornecido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
+  /functions/v1/imobiliarias/{id}:
+    patch:
+      summary: Atualizar alias da imobiliária
+      description: Atualiza apenas o alias de uma imobiliária específica pelo ID na URL
+      tags:
+        - Imobiliárias
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID da imobiliária a ser atualizada
+          schema:
+            type: integer
+            example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - alias
+              properties:
+                alias:
+                  type: string
+                  description: Novo alias da imobiliária (string vazia para remover)
+                  example: "Imobiliária Top"
+      responses:
+        '200':
+          description: Imobiliária atualizada com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  data:
+                    $ref: '#/components/schemas/Imobiliaria'
+        '400':
+          description: Erro de validação ou alias inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Token de autenticação inválido ou não fornecido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Imobiliária não encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /functions/v1/users:
+    get:
+      summary: Listar usuários
+      description: Retorna uma lista paginada de usuários do sistema com possibilidade de filtros
+      tags:
+        - Usuários
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: query
+          description: Filtrar por ID específico do usuário
+          required: false
+          schema:
+            type: integer
+            example: 1
+        - name: last_id
+          in: query
+          description: ID para paginação (retorna registros com ID menor que este)
+          required: false
+          schema:
+            type: integer
+            example: 100
+        - name: tipo
+          in: query
+          description: Filtrar por tipo de usuário
+          required: false
+          schema:
+            type: string
+            enum: [admlocal, master, imobiliaria, corretor]
+            example: master
+      responses:
+        '200':
+          description: Lista de usuários retornada com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+                  count:
+                    type: integer
+                    example: 50
+                  next_page_id:
+                    type: integer
+                    nullable: true
+                    example: 49
+                  next_page_url:
+                    type: string
+                    nullable: true
+                    example: "https://cqjviutyjppzxvwalwdv.supabase.co/functions/v1/users?last_id=49"
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Usuario'
+        '400':
+          description: Erro na requisição
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Token de autenticação inválido ou não fornecido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      summary: Criar usuário
+      description: Cria um novo usuário do tipo admlocal, master ou imobiliaria. Usuários do tipo corretor são criados automaticamente pelo sistema.
+      tags:
+        - Usuários
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - login
+                - password
+                - tipo
+                - idcorresp
+              properties:
+                login:
+                  type: string
+                  format: email
+                  description: E-mail do usuário (será usado como login)
+                  example: "admin@empresa.com"
+                password:
+                  type: string
+                  format: password
+                  description: Senha do usuário (mínimo 6 caracteres)
+                  example: "Senha@123"
+                tipo:
+                  type: string
+                  description: Tipo de usuário
+                  enum: [admlocal, master, imobiliaria]
+                  example: "master"
+                idcorresp:
+                  type: integer
+                  description: |
+                    ID correspondente conforme o tipo:
+                    - master: deve ser 0
+                    - admlocal: ID de empreendimento válido
+                    - imobiliaria: ID de imobiliária válida
+                  example: 0
+      responses:
+        '201':
+          description: Usuário criado com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  data:
+                    $ref: '#/components/schemas/Usuario'
+                  message:
+                    type: string
+                    example: "Usuário criado com sucesso"
+        '400':
+          description: Erro de validação, dados inválidos ou usuário já existe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Token de autenticação inválido ou não fornecido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Empreendimento ou imobiliária não encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /functions/v1/users/{id}:
+    patch:
+      summary: Atualizar usuário
+      description: Atualiza senha, status ou tipo de um usuário específico pelo ID na URL
+      tags:
+        - Usuários
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID do usuário a ser atualizado
+          schema:
+            type: integer
+            example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                password:
+                  type: string
+                  format: password
+                  description: Nova senha (mínimo 6 caracteres)
+                  example: "NovaSenha@123"
+                status:
+                  type: string
+                  description: Status do usuário
+                  enum: [ATIVO, INATIVO]
+                  example: "ATIVO"
+                tipo:
+                  type: string
+                  description: Tipo de usuário
+                  enum: [admlocal, master, imobiliaria]
+                  example: "admlocal"
+                idcorresp:
+                  type: integer
+                  description: |
+                    ID correspondente conforme o novo tipo:
+                    - master: deve ser 0
+                    - admlocal: ID de empreendimento válido
+                    - imobiliaria: ID de imobiliária válida
+                  example: 5
+      responses:
+        '200':
+          description: Usuário atualizado com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  data:
+                    $ref: '#/components/schemas/Usuario'
+        '400':
+          description: Erro de validação ou dados inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Token de autenticação inválido ou não fornecido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Usuário, empreendimento ou imobiliária não encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      summary: Excluir usuário
+      description: Exclui um usuário específico pelo ID na URL. Não é permitido excluir usuários do tipo corretor.
+      tags:
+        - Usuários
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID do usuário a ser excluído
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: Usuário excluído com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  message:
+                    type: string
+                    example: "Usuário excluído com sucesso"
+        '400':
+          description: Erro na requisição
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Token de autenticação inválido ou não fornecido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Não é permitido excluir usuários do tipo corretor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Usuário não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
 components:
   schemas:
@@ -1386,6 +1775,68 @@ components:
           type: string
           format: date-time
           example: "2025-10-27T21:28:08.198523+00:00"
+    Imobiliaria:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        nome:
+          type: string
+          example: "Imobiliária Exemplo Ltda"
+        idvca:
+          type: integer
+          nullable: true
+          example: 123
+        idlotear:
+          type: integer
+          nullable: true
+          example: 456
+        alias:
+          type: string
+          nullable: true
+          example: "Imob Top"
+        created_at:
+          type: string
+          format: date-time
+          example: "2025-10-27T21:28:08.198523+00:00"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2025-10-27T21:28:08.198523+00:00"          
+    Usuario:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        login:
+          type: string
+          example: "admin@empresa.com"
+        tipo:
+          type: string
+          enum: [admlocal, master, imobiliaria, corretor]
+          example: "master"
+        idcorresp:
+          type: integer
+          example: 0
+        status:
+          type: string
+          enum: [ATIVO, INATIVO]
+          example: "ATIVO"
+        uid:
+          type: string
+          format: uuid
+          nullable: true
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        created_at:
+          type: string
+          format: date-time
+          example: "2025-10-28T19:58:47.077275+00:00"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2025-10-28T19:58:47.077275+00:00"         
     Error:
       type: object
       properties:
