@@ -8,133 +8,85 @@ info:
     email: suporte@empresa.com
 
 servers:
-  - url: https://cqjviutyjppzxvwalwdv.supabase.co/functions/v1
-    description: Servidor Supabase Edge Functions
+  - url: https://cqjviutyjppzxvwalwdv.supabase.co
+    description: Servidor Supabase
 
 paths:
-  /corretores:
-    get:
-      summary: Listar corretores
-      description: Retorna uma lista paginada de corretores com possibilidade de filtros
+  /auth/v1/token:
+    post:
+      summary: Autenticar usuário
+      description: Realiza autenticação do usuário e retorna token JWT
       tags:
-        - Corretores
-      security:
-        - BearerAuth: []
+        - Autenticação
       parameters:
-        - name: idcorretor
+        - name: grant_type
           in: query
-          description: Filtrar por ID específico do corretor
-          required: false
-          schema:
-            type: integer
-            example: 192
-        - name: last_id
-          in: query
-          description: ID para paginação (retorna registros com ID menor que este)
-          required: false
-          schema:
-            type: integer
-            example: 200
-        - name: status
-          in: query
-          description: Filtrar por status do corretor
-          required: false
+          required: true
           schema:
             type: string
-            enum: [ativo, inativo]
-            example: ativo
-      responses:
-        '200':
-          description: Lista de corretores retornada com sucesso
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: "ok"
-                  count:
-                    type: integer
-                    example: 1
-                  next_page_id:
-                    type: integer
-                    nullable: true
-                    example: null
-                  next_page_url:
-                    type: string
-                    nullable: true
-                    example: null
-                  data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Corretor'
-        '400':
-          description: Erro na requisição
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '401':
-          description: Token de autenticação inválido ou não fornecido
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-    patch:
-      summary: Atualizar corretor
-      description: Atualiza o status ou avatar de um corretor específico
-      tags:
-        - Corretores
-      security:
-        - BearerAuth: []
+            enum: [password]
+            example: password
       requestBody:
         required: true
         content:
-          multipart/form-data:
+          application/json:
             schema:
               type: object
               required:
-                - idCorretor
+                - email
+                - password
               properties:
-                idCorretor:
-                  type: integer
-                  description: ID do corretor a ser atualizado
-                  example: 192
-                status:
+                email:
                   type: string
-                  description: Novo status do corretor
-                  enum: [ATIVO, INATIVO]
-                  example: ATIVO
-                avatarFile:
+                  format: email
+                  example: "otavio.nascimento@vcaconstrutora.com.br"
+                password:
                   type: string
-                  format: binary
-                  description: Arquivo de imagem para avatar
+                  format: password
+                  example: "Vca@2025"
       responses:
         '200':
-          description: Corretor atualizado com sucesso
+          description: Autenticação realizada com sucesso
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  data:
-                    $ref: '#/components/schemas/Corretor'
+                  access_token:
+                    type: string
+                    example: "eyJhbGciOiJIUzI1NiIsImtpZCI6IlJENUg2dnA2MUZ6YlVRelEiLCJ0eXAiOiJKV1QifQ..."
+                  token_type:
+                    type: string
+                    example: "bearer"
+                  expires_in:
+                    type: integer
+                    example: 3600
+                  expires_at:
+                    type: integer
+                    example: 1761654205
+                  refresh_token:
+                    type: string
+                    example: "k5piz57ybqrd"
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        example: "165288a0-b7c1-496d-8e7f-369e4e08eb94"
+                      email:
+                        type: string
+                        example: "otavio.nascimento@vcaconstrutora.com.br"
+                      role:
+                        type: string
+                        example: "authenticated"
         '400':
-          description: Erro na requisição
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '401':
-          description: Token de autenticação inválido ou não fornecido
+          description: Credenciais inválidas ou erro na autenticação
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /pontos:
+  /functions/v1/pontos:
     get:
       summary: Listar pontos
       description: Retorna uma lista paginada de pontos com diversos filtros disponíveis
@@ -290,13 +242,22 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
+  /functions/v1/pontos/{id}:
     patch:
       summary: Atualizar ponto manual
-      description: Atualiza um ponto existente do tipo manual
+      description: Atualiza um ponto existente do tipo manual pelo ID na URL
       tags:
         - Pontos
       security:
         - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID do ponto a ser atualizado
+          schema:
+            type: integer
+            example: 1
       requestBody:
         required: true
         content:
@@ -304,19 +265,9 @@ paths:
             schema:
               type: object
               required:
-                - idcorretor
-                - idempreendimento
                 - valor
                 - motivo
               properties:
-                idcorretor:
-                  type: integer
-                  description: ID do corretor
-                  example: 192
-                idempreendimento:
-                  type: integer
-                  description: ID do empreendimento
-                  example: 15
                 valor:
                   type: number
                   format: float
@@ -357,9 +308,463 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+    delete:
+      summary: Excluir ponto manual
+      description: Exclui um ponto existente do tipo manual pelo ID na URL
+      tags:
+        - Pontos
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID do ponto a ser excluído
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: Ponto excluído com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  message:
+                    type: string
+                    example: "Ponto excluído com sucesso"
+        '400':
+          description: Erro de validação
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Token de autenticação inválido ou não fornecido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Ponto não é do tipo MANUAL e não pode ser excluído
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Ponto não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /functions/v1/corretores:
+    get:
+      summary: Listar corretores
+      description: Retorna uma lista paginada de corretores com possibilidade de filtros
+      tags:
+        - Corretores
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: idcorretor
+          in: query
+          description: Filtrar por ID específico do corretor
+          required: false
+          schema:
+            type: integer
+            example: 192
+        - name: last_id
+          in: query
+          description: ID para paginação (retorna registros com ID menor que este)
+          required: false
+          schema:
+            type: integer
+            example: 200
+        - name: status
+          in: query
+          description: Filtrar por status do corretor
+          required: false
+          schema:
+            type: string
+            enum: [ativo, inativo]
+            example: ativo
+      responses:
+        '200':
+          description: Lista de corretores retornada com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+                  count:
+                    type: integer
+                    example: 1
+                  next_page_id:
+                    type: integer
+                    nullable: true
+                    example: null
+                  next_page_url:
+                    type: string
+                    nullable: true
+                    example: null
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Corretor'
+        '400':
+          description: Erro na requisição
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Token de autenticação inválido ou não fornecido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /functions/v1/corretores/{id}:
+    patch:
+      summary: Atualizar corretor
+      description: Atualiza o status ou avatar de um corretor específico pelo ID na URL
+      tags:
+        - Corretores
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID do corretor a ser atualizado
+          schema:
+            type: integer
+            example: 192
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  description: Novo status do corretor
+                  enum: [ATIVO, INATIVO]
+                  example: ATIVO
+                avatarFile:
+                  type: string
+                  format: binary
+                  description: Arquivo de imagem para avatar
+      responses:
+        '200':
+          description: Corretor atualizado com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Corretor'
+        '400':
+          description: Erro na requisição
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Token de autenticação inválido ou não fornecido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /functions/v1/base-points:
+    get:
+      summary: Listar pontos base
+      description: Retorna a lista completa de pontos base do sistema (sem paginação)
+      tags:
+        - Pontos Base
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: query
+          description: Filtrar por ID específico do ponto base
+          required: false
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: Lista de pontos base retornada com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+                  count:
+                    type: integer
+                    example: 7
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PontoBase'
+        '400':
+          description: Erro na requisição
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Token de autenticação inválido ou não fornecido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /functions/v1/base-points/{id}:
+    patch:
+      summary: Atualizar ponto base
+      description: Atualiza um ponto base específico pelo ID na URL
+      tags:
+        - Pontos Base
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID do ponto base a ser atualizado
+          schema:
+            type: integer
+            example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                motivo:
+                  type: string
+                  description: Descrição do motivo do ponto base
+                  example: "Venda direta"
+                pontobase:
+                  type: number
+                  format: float
+                  description: Valor do ponto base
+                  example: 15.5
+      responses:
+        '200':
+          description: Ponto base atualizado com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  data:
+                    $ref: '#/components/schemas/PontoBase'
+        '400':
+          description: Erro na requisição
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Token de autenticação inválido ou não fornecido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Ponto base não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /functions/v1/enterprises:
+    get:
+      summary: Listar empreendimentos
+      description: Retorna a lista completa de empreendimentos (sem paginação)
+      tags:
+        - Empreendimentos
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: query
+          description: Filtrar por ID específico do empreendimento
+          required: false
+          schema:
+            type: integer
+            example: 1
+        - name: idcidade
+          in: query
+          description: Filtrar por ID da cidade
+          required: false
+          schema:
+            type: integer
+            example: 5
+      responses:
+        '200':
+          description: Lista de empreendimentos retornada com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+                  count:
+                    type: integer
+                    example: 10
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Empreendimento'
+        '400':
+          description: Erro na requisição
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Token de autenticação inválido ou não fornecido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /functions/v1/enterprises/{id}:
+    patch:
+      summary: Atualizar empreendimento
+      description: Atualiza apenas a cidade de um empreendimento específico pelo ID na URL
+      tags:
+        - Empreendimentos
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID do empreendimento a ser atualizado
+          schema:
+            type: integer
+            example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - idcidade
+              properties:
+                idcidade:
+                  type: integer
+                  description: ID da cidade do empreendimento
+                  example: 5
+      responses:
+        '200':
+          description: Empreendimento atualizado com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  data:
+                    $ref: '#/components/schemas/Empreendimento'
+        '400':
+          description: Erro na requisição
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Token de autenticação inválido ou não fornecido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Empreendimento não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
 components:
   schemas:
+    PontoBase:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        motivo:
+          type: string
+          example: "Venda direta"
+        pontobase:
+          type: number
+          format: float
+          example: 15.5
+        created_at:
+          type: string
+          format: date-time
+          example: "2025-10-27T21:28:08.198523+00:00"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2025-10-27T21:28:08.198523+00:00"
+
+    Empreendimento:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        nome:
+          type: string
+          example: "Residencial Solar"
+        idcidade:
+          type: integer
+          nullable: true
+          example: 5
+        idcv:
+          type: integer
+          example: 100
+        basecv:
+          type: string
+          example: "VCA"
+        created_at:
+          type: string
+          format: date-time
+          example: "2025-10-27T21:28:08.198523+00:00"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2025-10-27T21:28:08.198523+00:00"
+
     Corretor:
       type: object
       properties:
@@ -450,7 +855,6 @@ components:
         - $ref: '#/components/schemas/Ponto'
         - type: object
           properties:
-            # Adicione aqui propriedades adicionais da view vw_pontos_completo
             nome_corretor:
               type: string
               example: "THAYLANA CUNHA MACHADO"
