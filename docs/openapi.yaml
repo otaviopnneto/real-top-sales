@@ -54,7 +54,7 @@ paths:
                 properties:
                   access_token:
                     type: string
-                    example: "eyJhbGciOiJIUzI1NiIsImtpZCI6IlJENUg2dnA2MUZ6YlVRelEiLCJ0eXAiOiJKV1QifQ..."
+                    example: "eyJhbGciaaJIUzI1NiIsImtpZCI6IlJENUg2dnA2MUZ6YlVRelEiLCJ0eXAiOiJKV1QifQ..."
                   token_type:
                     type: string
                     example: "bearer"
@@ -75,7 +75,7 @@ paths:
                         example: "165288a0-b7c1-496d-8e7f-369e4e08eb94"
                       email:
                         type: string
-                        example: "otavio.nascimento@vcaconstrutora.com.br"
+                        example: "login@email.com"
                       role:
                         type: string
                         example: "authenticated"
