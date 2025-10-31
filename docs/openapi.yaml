@@ -1314,6 +1314,13 @@ paths:
           schema:
             type: integer
             example: 1
+        - name: email
+          in: query
+          description: Filtrar por email específico do usuário
+          required: false
+          schema:
+            type: string
+            example: email@email.com
         - name: last_id
           in: query
           description: ID para paginação (retorna registros com ID menor que este)
@@ -1448,7 +1455,13 @@ paths:
   /functions/v1/users/{id}:
     patch:
       summary: Atualizar usuário
-      description: Atualiza senha, status ou tipo de um usuário específico pelo ID na URL
+      description: |
+        Atualiza informações de um usuário específico pelo ID na URL.
+  
+        Esta rota aceita **dois formatos de requisição**:
+        - `application/json`: para atualizar senha, status, tipo ou idcorresp.
+        - `multipart/form-data`: para atualizar o avatar (foto de perfil).
+  
       tags:
         - Usuários
       security:
@@ -1464,7 +1477,7 @@ paths:
       requestBody:
         required: true
         content:
-          application/json:
+          multipart/form-data:
             schema:
               type: object
               properties:
@@ -1475,22 +1488,24 @@ paths:
                   example: "NovaSenha@123"
                 status:
                   type: string
-                  description: Status do usuário
                   enum: [ATIVO, INATIVO]
                   example: "ATIVO"
                 tipo:
                   type: string
-                  description: Tipo de usuário
                   enum: [admlocal, master, imobiliaria]
                   example: "admlocal"
                 idcorresp:
                   type: integer
+                  example: 5
                   description: |
-                    ID correspondente conforme o novo tipo:
+                    ID correspondente conforme o tipo:
                     - master: deve ser 0
                     - admlocal: ID de empreendimento válido
                     - imobiliaria: ID de imobiliária válida
-                  example: 5
+                avatarFile:
+                  type: string
+                  format: binary
+                  description: Arquivo de imagem para o avatar do usuário
       responses:
         '200':
           description: Usuário atualizado com sucesso
@@ -1628,6 +1643,9 @@ components:
           type: string
           format: date-time
           example: "2025-10-27T21:28:08.198523+00:00"
+        nomecidade:
+          type: string
+          example: "VITÓRIA DA CONQUISTA - BA"
 
     Corretor:
       type: object
@@ -1675,6 +1693,9 @@ components:
           type: string
           format: date-time
           example: "2025-10-27T21:28:08.198523+00:00"
+        nomeimob:
+          type: string
+          example: "Imobiliária 01"
 
     Ponto:
       type: object
@@ -1829,6 +1850,9 @@ components:
           format: uuid
           nullable: true
           example: "123e4567-e89b-12d3-a456-426614174000"
+        avatar:
+          type: string
+          example: "https://cqjviutyjppzxvwalwdv.supabase.co/storage/v1/object/public/avatars_users/example.png"
         created_at:
           type: string
           format: date-time
