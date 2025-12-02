@@ -2215,20 +2215,44 @@ components:
 
     ProdutoInput:
       type: object
+      required:
+        - titulo
+        - descricao
+        - valor
+        - foto
+        - info_retirada
+        - status
+        - datainicial
       properties:
-        titulo: { type: string }
-        descricao: { type: string }
-        valor: { type: number }
-        foto: { type: string, format: binary }
-        info_retirada: { type: string }
+        titulo:
+          type: string
+          example: "Moletom Azul"
+        descricao:
+          type: string
+          example: "Moletom de manga comprida com listras"
+        valor:
+          type: number
+          example: 100
+        foto:
+          type: string
+          format: binary
+        info_retirada:
+          type: string
+          example: "VCA Shop - Sede VCA"
         status:
           type: string
           enum: [ATIVO, INATIVO]
+          example: "ATIVO"
         datainicial:
           type: string
+          format: date
+          example: "2025-01-01"
         datafinal:
           type: string
+          format: date
           nullable: true
+          example: null
+
 
     Voucher:
       type: object
