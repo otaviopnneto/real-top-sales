@@ -1594,6 +1594,472 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
+  /functions/v1/quizzes:
+    get:
+      summary: Listar todos os quizzes
+      description: Retorna a lista de todos os quizzes. Inclui cálculo automático de `valor_por_pergunta`.
+      tags:
+        - Quizzes
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/QuizCompleto"
+    post:
+      summary: Criar Quiz Completo
+      description: Cria um quiz com perguntas e respostas em uma única requisição via RPC `create_full_quiz`.
+      tags:
+        - Quizzes
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QuizCreatePayload"
+      responses:
+        "201":
+          description: Quiz criado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  quiz_id:
+                    type: integer
+
+  /functions/v1/quizzes/{id}:
+    get:
+      summary: Obter Quiz por ID
+      description: Retorna detalhes de um quiz específico e suas perguntas.
+      tags:
+        - Quizzes
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Detalhes do quiz
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuizCompleto"
+        "404":
+          description: Quiz não encontrado
+    patch:
+      summary: Atualizar Quiz
+      description: Atualiza dados básicos (título, pontos, datas).
+      tags:
+        - Quizzes
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QuizUpdatePayload"
+      responses:
+        "200":
+          description: Atualizado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Quiz"
+    delete:
+      summary: Deletar Quiz
+      tags:
+        - Quizzes
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deletado com sucesso
+
+  /functions/v1/quizzes/{id}/submit:
+    post:
+      summary: Enviar Respostas do Quiz
+      description: |
+        Recebe um array de respostas do corretor. 
+        Verifica duplicidade, calcula pontos (baseado no valor total do quiz dividido pelo número de perguntas) e insere pontuação se aplicável.
+      tags:
+        - Quizzes
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID do Quiz (usado para validação)
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - idcorretor
+                - respostas
+              properties:
+                idcorretor:
+                  type: integer
+                respostas:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - question_id
+                      - answer_id
+                    properties:
+                      question_id:
+                        type: integer
+                      answer_id:
+                        type: integer
+      responses:
+        "201":
+          description: Respostas processadas com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  pontos_ganhos:
+                    type: number
+                    description: Total de pontos acumulados nesta submissão
+                  respostas:
+                    type: array
+                    items:
+                      type: object
+                      description: Registros inseridos em tb_respostas
+        "409":
+          description: Corretor já respondeu este quiz
+        "400":
+          description: Erro de validação ou dados incorretos
+
+  /functions/v1/quizzes/respondidos/{idcorretor}:
+    get:
+      summary: Histórico de Quizzes Respondidos
+      description: Retorna o histórico de respostas de um corretor, agrupado por Quiz.
+      tags:
+        - Quizzes
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: idcorretor
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Histórico agrupado
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/QuizRespondidoGroup"
+
+  /functions/v1/quizzes/{id}/questions:
+    get:
+      summary: Listar Perguntas de um Quiz
+      tags:
+        - Quizzes
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Lista de perguntas com respostas aninhadas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Question"
+
+  /functions/v1/quizzes/{id}/answers:
+    get:
+      summary: Listar Todas as Respostas de um Quiz
+      description: Busca todas as respostas de todas as perguntas vinculadas ao quiz.
+      tags:
+        - Quizzes
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Lista plana de respostas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Answer"
+
+  # ============================================================================
+  # QUESTIONS
+  # ============================================================================
+  /functions/v1/quizzes/questions:
+    get:
+      summary: Listar todas as perguntas (Global)
+      tags:
+        - Questions
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Lista completa
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Question"
+    post:
+      summary: Criar Pergunta(s)
+      description: Aceita um objeto único ou um array de objetos para criação em massa.
+      tags:
+        - Questions
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: "#/components/schemas/QuestionPayload"
+                - type: array
+                  items:
+                    $ref: "#/components/schemas/QuestionPayload"
+      responses:
+        "201":
+          description: Pergunta(s) criada(s)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Question"
+
+  /functions/v1/quizzes/questions/{id}:
+    get:
+      summary: Obter Pergunta
+      tags:
+        - Questions
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Detalhes da pergunta
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Question"
+    patch:
+      summary: Atualizar Pergunta
+      description: Atualiza texto. Impede atualização direta de pontos (calculado).
+      tags:
+        - Questions
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                text:
+                  type: string
+      responses:
+        "200":
+          description: Atualizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Question"
+    delete:
+      summary: Deletar Pergunta
+      tags:
+        - Questions
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deletado sem conteúdo
+
+  # ============================================================================
+  # ANSWERS
+  # ============================================================================
+  /functions/v1/quizzes/answers:
+    get:
+      summary: Listar todas as respostas (Global)
+      tags:
+        - Answers
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Lista completa
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Answer"
+    post:
+      summary: Criar Resposta(s)
+      description: Aceita um objeto único ou um array de objetos.
+      tags:
+        - Answers
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: "#/components/schemas/AnswerPayload"
+                - type: array
+                  items:
+                    $ref: "#/components/schemas/AnswerPayload"
+      responses:
+        "201":
+          description: Criado
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Answer"
+
+  /functions/v1/quizzes/answers/{id}:
+    get:
+      summary: Obter Resposta
+      tags:
+        - Answers
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Detalhes
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Answer"
+    patch:
+      summary: Atualizar Resposta
+      tags:
+        - Answers
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                text:
+                  type: string
+                is_correct:
+                  type: boolean
+      responses:
+        "200":
+          description: Atualizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Answer"
+    delete:
+      summary: Deletar Resposta
+      tags:
+        - Answers
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deletado
+
+
   /functions/v1/products:
     get:
       summary: Listar produtos
@@ -2168,7 +2634,207 @@ components:
         updated_at:
           type: string
           format: date-time
-          example: "2025-10-28T19:58:47.077275+00:00"      
+          example: "2025-10-28T19:58:47.077275+00:00" 
+ # --- QUIZ SCHEMAS ---
+    Quiz:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        title:
+          type: string
+          example: "Quiz sobre o Empreendimento X"
+        data_inicio:
+          type: string
+          format: date-time
+        data_fim:
+          type: string
+          format: date-time
+        points:
+          type: integer
+          description: Pontos totais do quiz
+          example: 100
+        valor_por_pergunta:
+          type: number
+          readOnly: true
+          description: Valor calculado automaticamente (points / qtd_perguntas)
+          example: 10.0
+        status:
+          type: string
+          example: "ATIVO"
+        idempreendimento:
+          type: integer
+          example: 5
+
+    QuizCompleto:
+      allOf:
+        - $ref: "#/components/schemas/Quiz"
+        - type: object
+          properties:
+            tb_questions:
+              type: array
+              items:
+                $ref: "#/components/schemas/Question"
+
+    QuizUpdatePayload:
+      type: object
+      properties:
+        title:
+          type: string
+        points:
+          type: integer
+        status:
+          type: string
+        data_inicio:
+          type: string
+          format: date-time
+        data_fim:
+          type: string
+          format: date-time
+
+    QuizCreatePayload:
+      type: object
+      required:
+        - title
+        - points
+        - idempreendimento
+        - questions
+      properties:
+        title:
+          type: string
+        points:
+          type: integer
+        idempreendimento:
+          type: integer
+        data_inicio:
+          type: string
+          format: date-time
+        data_fim:
+          type: string
+          format: date-time
+        tb_questions:
+          type: array
+          items:
+            type: object
+            required:
+              - text
+              - answers
+            properties:
+              text:
+                type: string
+              tb_answers:
+                type: array
+                items:
+                  type: object
+                  required:
+                    - text
+                    - is_correct
+                  properties:
+                    text:
+                      type: string
+                    is_correct:
+                      type: boolean
+
+    # --- QUESTIONS & ANSWERS ---
+    Question:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 10
+        text:
+          type: string
+          example: "Qual a área de lazer principal?"
+        quiz_id:
+          type: integer
+          example: 1
+        valor_pergunta:
+          type: number
+          readOnly: true
+          example: 10.0
+        tb_answers:
+          type: array
+          items:
+            $ref: "#/components/schemas/Answer"
+
+    QuestionPayload:
+      type: object
+      required:
+        - text
+        - quiz_id
+      properties:
+        text:
+          type: string
+        quiz_id:
+          type: integer
+
+    Answer:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 50
+        text:
+          type: string
+          example: "Piscina Olímpica"
+        is_correct:
+          type: boolean
+          example: true
+        question_id:
+          type: integer
+          example: 10
+
+    AnswerPayload:
+      type: object
+      required:
+        - text
+        - is_correct
+        - question_id
+      properties:
+        text:
+          type: string
+        is_correct:
+          type: boolean
+        question_id:
+          type: integer
+
+    # --- HISTÓRICO QUIZ ---
+    QuizRespondidoGroup:
+      type: object
+      description: Objeto agrupado retornado pela rota de histórico
+      properties:
+        quiz:
+          $ref: "#/components/schemas/Quiz"
+        respostas:
+          type: array
+          items:
+            type: object
+            properties:
+              question:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  text:
+                    type: string
+              answer:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  text:
+                    type: string
+                  is_correct:
+                    type: boolean
+              pontos_ganhos:
+                type: number
+              is_correct:
+                type: boolean
+              created_at:
+                type: string
+                format: date-time
+
     Produto:
       type: object
       properties:
