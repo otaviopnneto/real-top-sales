@@ -1836,6 +1836,45 @@ paths:
                 items:
                   $ref: "#/components/schemas/Answer"
 
+  /functions/v1/visibility:
+    get:
+      summary: Retorna as cidades visíveis para um corretor específico
+      description: >
+        Este endpoint retorna todas as cidades para as quais o corretor possui visibilidade,
+        baseado na imobiliária (`idimob`) associada a ele.  
+        O parâmetro `idcorretor` é obrigatório.
+      tags:
+        - Visibilidade
+      parameters:
+        - name: idcorretor
+          in: query
+          required: true
+          description: ID do corretor a ser consultado
+          schema:
+            type: integer
+            example: 5
+      responses:
+        "200":
+          description: Cidades encontradas para o corretor informado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VisibilityResponse"
+        "400":
+          description: Parâmetro inválido ou corretor não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Erro interno
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+
+
   # ============================================================================
   # QUESTIONS
   # ============================================================================
@@ -2364,7 +2403,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SaldoList'
-
 
 components:
   schemas:
@@ -3053,9 +3091,14 @@ components:
     SaldoList:
       type: object
       properties:
-        count: { type: integer }
-        next_page_id: { type: integer, nullable: true }
-        next_page_url: { type: string, nullable: true }
+        count:
+          type: integer
+        next_page_id:
+          type: integer
+          nullable: true
+        next_page_url:
+          type: string
+          nullable: true
         data:
           type: array
           items:
@@ -3077,6 +3120,36 @@ components:
           type: number
           example: 1000
 
+    VisibilityResponse:
+      type: object
+      properties:
+        idcorretor:
+          type: integer
+          example: 5
+        totalcidades:
+          type: integer
+          example: 1
+        cidades:
+          type: array
+          items:
+            $ref: '#/components/schemas/CidadeVisibility'
+      required:
+        - idcorretor
+        - totalcidades
+        - cidades
+
+    CidadeVisibility:
+      type: object
+      properties:
+        idcidade:
+          type: integer
+          example: 1
+        nomecidade:
+          type: string
+          example: "VCA"
+      required:
+        - idcidade
+        - nomecidade
 
     Error:
       type: object
