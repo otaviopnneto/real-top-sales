@@ -677,14 +677,24 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - idcidade
-              properties:
-                idcidade:
-                  type: integer
-                  description: ID da cidade do empreendimento
-                  example: 5
+              oneOf:
+                - required: [idcidade]
+                  properties:
+                    idcidade:
+                      type: integer
+                - required: [idtipo]
+                  properties:
+                    idtipo:
+                      type: integer
+                - required: [idcidade, idtipo]
+                  properties:
+                    idcidade:
+                      type: integer
+                    idtipo:
+                      type: integer
+              example:
+                idcidade: 3
+                idtipo: 2
       responses:
         '200':
           description: Empreendimento atualizado com sucesso
@@ -2404,6 +2414,58 @@ paths:
               schema:
                 $ref: '#/components/schemas/SaldoList'
 
+  /functions/v1/categorized-points:
+    get:
+      tags:
+        - Pontos por Categoria
+      summary: Lista pontos categorizados por tipo de empreendimento
+      responses:
+        '200':
+          description: Lista de pontos categorizados
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  count:
+                    type: integer
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CategorizedPoint'
+        '400':
+          description: Erro na requisição
+  /functions/v1/categorized-points/{id}:
+    patch:
+      tags:
+        - Pontos por Categoria
+      summary: Atualiza o valor do ponto categorizado
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                valor:
+                  type: number
+                  example: 7.5
+      responses:
+        '200':
+          description: Ponto categorizado atualizado
+        '400':
+          description: Erro de validação
+
+
 components:
   schemas:
     PontoBase:
@@ -2458,6 +2520,12 @@ components:
         nomecidade:
           type: string
           example: "VITÓRIA DA CONQUISTA - BA"
+        idtipo:
+          type: integer
+          example: 2
+        nometipo:
+          type: string
+          example: INCORPORAÇÃO
 
     Corretor:
       type: object
@@ -3150,6 +3218,29 @@ components:
       required:
         - idcidade
         - nomecidade
+
+    CategorizedPoint:
+      type: object
+      properties:
+        id:
+          type: integer
+        valor:
+          type: number
+        idtipo:
+          type: integer
+        nometipo:
+          type: string
+        idpontobase:
+          type: integer
+        motivo:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
 
     Error:
       type: object
