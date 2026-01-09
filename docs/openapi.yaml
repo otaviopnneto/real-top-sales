@@ -2665,6 +2665,14 @@ components:
             nome_empreendimento:
               type: string
               example: "Residencial Solar"
+            idtipoempreendimento:
+              type: integer
+              nullable: true
+              example: 2
+            nome_tipo_empreendimento:
+              type: string
+              nullable: true
+              example: "INCORPORAÇÃO"
     Cidade:
       type: object
       properties:
